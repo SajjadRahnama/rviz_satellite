@@ -40,7 +40,7 @@
 #define FRAME_CONVENTION_XYZ_ENU (0)  //  X -> East, Y -> North
 #define FRAME_CONVENTION_XYZ_NED (1)  //  X -> North, Y -> East
 #define FRAME_CONVENTION_XYZ_NWU (2)  //  X -> North, Y -> West
-
+bool is_fix = false;
 // Max number of adjacent blocks to support.
 static constexpr int kMaxBlocks = 8;
 // Max zoom level to support.
@@ -117,7 +117,7 @@ AerialMapDisplay::AerialMapDisplay()
 
   //  properties for map
   object_uri_property_ = new StringProperty(
-      "Object URI", "http://otile1.mqcdn.com/tiles/1.0.0/sat/{z}/{x}/{y}.jpg",
+      "Object URI", "test",
       "URL from which to retrieve map tiles.", this, SLOT(updateObjectURI()));
   object_uri_property_->setShouldBeSaved(true);
   object_uri_ = object_uri_property_->getStdString();
@@ -289,7 +289,7 @@ AerialMapDisplay::navFixCallback(const sensor_msgs::NavSatFixConstPtr &msg) {
   // reloading to do.
   if (!received_msg_ ||
       (loader_ && !loader_->insideCentreTile(msg->latitude, msg->longitude) &&
-       dynamic_reload_property_->getValue().toBool())) {
+       dynamic_reload_property_->getValue().toBool() && !is_fix)) {
     ref_fix_ = *msg;
     ROS_INFO("Reference point set to: %.12f, %.12f", ref_fix_.latitude,
              ref_fix_.longitude);
@@ -297,9 +297,12 @@ AerialMapDisplay::navFixCallback(const sensor_msgs::NavSatFixConstPtr &msg) {
 
     //  re-load imagery
     received_msg_ = true;
-    loadImagery();
-    transformAerialMap();
+    is_fix = true;
+    
+//    transformAerialMap();
   }
+  if(is_fix && dynamic_reload_property_->getValue().toBool())
+    loadImagery();
 }
 
 void AerialMapDisplay::loadImagery() {
@@ -370,6 +373,8 @@ void AerialMapDisplay::assembleScene() {
     const std::string name_suffix =
         std::to_string(tile.x()) + "_" + std::to_string(tile.y()) + "_" +
         std::to_string(map_id_) + "_" + std::to_string(scene_id_);
+//    QString a= QString::fromStdString(name_suffix);
+//    ROS_INFO("----%s", qPrintable(a));
 
     if (tile.hasImage()) {
       //  one material per texture
@@ -438,7 +443,7 @@ void AerialMapDisplay::assembleScene() {
       obj->position(x, y + tile_h, 0.0f);
       obj->textureCoord(0.0f, 1.0f);
       obj->normal(0.0f, 0.0f, 1.0f);
-
+///////////////////////////////////////////////////////////////////////////
       //  bottom left
       obj->position(x, y, 0.0f);
       obj->textureCoord(0.0f, 0.0f);
