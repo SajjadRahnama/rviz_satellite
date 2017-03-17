@@ -95,7 +95,9 @@ gen/*
 
 # Map cache items
 mapscache/
+*.*~
 
+# Netbeans folders
 rviz_satellite/Rviz_Satellite
 rviz_satellite/Rviz_Satellite/nbproject
-rviz_satellite/Rviz_Satellite/nbproject/private
+rviz_satellite/Rviz_Satellite/nbproject/private/CodeAssistancePathMapper.properties

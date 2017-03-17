@@ -95,6 +95,7 @@ gen/*
 
 # Map cache items
 mapscache/
+*.*~
 
 # Netbeans folders
 rviz_satellite/Rviz_Satellite
