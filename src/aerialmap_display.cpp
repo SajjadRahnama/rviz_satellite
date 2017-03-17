@@ -323,19 +323,20 @@ void AerialMapDisplay::navFixCallback(const sensor_msgs::NavSatFixConstPtr &msg)
       (loader_ && !loader_->insideCentreTile(msg->latitude, msg->longitude) &&
       dynamic_reload_property_->getValue().toBool() && !is_fix))
   {
-    ref_fix_ = *msg;
-    ROS_INFO("Reference point set to: %.12f, %.12f", ref_fix_.latitude,
-      ref_fix_.longitude);
+    current_ref_fix_ = *msg;
+    ROS_INFO("Reference point set to: %.12f, %.12f", current_ref_fix_.latitude,
+      current_ref_fix_.longitude);
     setStatus(StatusProperty::Warn, "Message", "Loading map tiles.");
-
-    //  re-load imagery
+    if (!is_fix)
+      fix_ref_fix_ = *msg;
     received_msg_ = true;
     is_fix = true;
-
-    //    transformAerialMap();
   }
   if (is_fix && dynamic_reload_property_->getValue().toBool())
+  {
     loadImagery();
+    ROS_INFO("Fixed nav coordinate %f , %f \n", fix_ref_fix_.latitude, fix_ref_fix_.longitude);
+  }
 }
 
 void AerialMapDisplay::loadImagery()
@@ -356,8 +357,8 @@ void AerialMapDisplay::loadImagery()
 
   try
   {
-    loader_.reset(new TileLoader(object_uri_, ref_fix_.latitude,
-      ref_fix_.longitude, zoom_, blocks_, this));
+    loader_.reset(new TileLoader(object_uri_, fix_ref_fix_.latitude,
+      fix_ref_fix_.longitude, zoom_, blocks_, this));
   }
   catch (std::exception &e)
   {
@@ -579,7 +580,7 @@ void AerialMapDisplay::transformAerialMap()
   Ogre::Quaternion orientation{1, 0, 0, 0};
 
   // get the transform at the time we received the reference lat and lon
-  if (!context_->getFrameManager()->transform(frame, ref_fix_.header.stamp, pose,
+  if (!context_->getFrameManager()->transform(frame, current_ref_fix_.header.stamp, pose,
       position, orientation))
   {
     ROS_DEBUG("Error transforming map '%s' from frame '%s' to frame '%s'",
