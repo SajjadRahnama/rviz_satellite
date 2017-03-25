@@ -52,6 +52,7 @@
               <pElem>/opt/ros/indigo/include</pElem>
               <pElem>/usr/include/eigen3</pElem>
               <pElem>../src</pElem>
+              <pElem>../../../devel/include</pElem>
             </incDir>
             <preprocessorList>
               <Elem>QT_CORE_LIB</Elem>

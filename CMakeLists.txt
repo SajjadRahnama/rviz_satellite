@@ -21,6 +21,7 @@ endif()
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 
+
 pkg_check_modules(OGRE_OV OGRE OGRE-Overlay)
 
 # Old versions of OGRE (pre 1.9) included OGRE-Overlay in the main package
@@ -35,9 +36,22 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rviz
   sensor_msgs
+  std_msgs
+  message_generation
 )
 
-catkin_package(CATKIN_DEPENDS nav_msgs sensor_msgs)
+## Generate services in the 'srv' folder
+ add_service_files(
+   FILES
+   ReadTakeoffGps.srv
+)
+
+ generate_messages(
+   DEPENDENCIES
+   std_msgs
+ )
+
+catkin_package(CATKIN_DEPENDS nav_msgs sensor_msgs message_runtime)
 
 set(${PROJECT_NAME}_SOURCES
   src/aerialmap_display.cpp

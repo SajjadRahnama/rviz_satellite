@@ -46,6 +46,8 @@ static constexpr int kMaxBlocks = 8;
 // Max zoom level to support.
 static constexpr int kMaxZoom = 22;
 
+sensor_msgs::NavSatFix fix_ref_fix_;
+
 // TODO(gareth): If higher zooms are ever supported, change calculations from
 // int to long wherever applicable.
 static_assert((1 << kMaxZoom) < std::numeric_limits<unsigned int>::max(), "");
@@ -72,6 +74,15 @@ Ogre::TexturePtr textureFromImage(const QImage &image,
   return texture;
 }
 
+bool sendTakeoffGps(rviz_satellite::ReadTakeoffGps::Request &req,
+  rviz_satellite::ReadTakeoffGps::Response &res)
+{
+  res.lat = fix_ref_fix_.latitude;
+  res.lon = fix_ref_fix_.longitude;
+  ROS_INFO("Response : %f, %f", res.lat, res.lon);
+  return true;
+}
+
 namespace rviz
 {
 
@@ -79,7 +90,8 @@ AerialMapDisplay::AerialMapDisplay()
   : Display(), map_id_(0), scene_id_(0), dirty_(false),
   received_msg_(false)
 {
-
+  is_fix = false;
+  service = update_nh_.advertiseService("read_takeoff_gps", sendTakeoffGps);
   static unsigned int map_ids = 0;
   map_id_ = map_ids++; //  global counter of map ids
 
