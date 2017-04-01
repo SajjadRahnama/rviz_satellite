@@ -158,6 +158,18 @@ AerialMapDisplay::AerialMapDisplay()
     new EnumProperty("Frame Convention", "XYZ -> ENU",
     "Convention for mapping cartesian frame to the compass",
     this, SLOT(updateFrameConvention()));
+
+  draw_mapscache_ =
+    new Property("Draw MapCache", false,
+    "draw mapcache.",
+    this, SLOT(updateDynamicReload()));
+
+  lat_property_ =
+    new StringProperty("Lat", "0", "for lat", this, SLOT(updateZoom()));
+
+  lon_property_ =
+    new StringProperty("Lon", "0", "for lon", this, SLOT(updateZoom()));
+
   frame_convention_property_->addOptionStd("XYZ -> ENU",
     FRAME_CONVENTION_XYZ_ENU);
   frame_convention_property_->addOptionStd("XYZ -> NED",
@@ -182,6 +194,15 @@ void AerialMapDisplay::onInitialize()
 
 void AerialMapDisplay::onEnable()
 {
+  if (draw_mapscache_->getValue().toBool())
+  {
+    received_msg_ = true;
+    loadImagery();
+  }
+  else
+  {
+    received_msg_ = false;
+  }
   subscribe();
 }
 
@@ -369,8 +390,16 @@ void AerialMapDisplay::loadImagery()
 
   try
   {
-    loader_.reset(new TileLoader(object_uri_, fix_ref_fix_.latitude,
-      fix_ref_fix_.longitude, zoom_, blocks_, this));
+    if (draw_mapscache_->getValue().toBool())
+    {
+      loader_.reset(new TileLoader(object_uri_, lat_property_->getString().toDouble(),
+        lon_property_->getString().toDouble(), zoom_, blocks_, this));
+    }
+    else
+    {
+      loader_.reset(new TileLoader(object_uri_, fix_ref_fix_.latitude,
+        fix_ref_fix_.longitude, zoom_, blocks_, this));
+    }
   }
   catch (std::exception &e)
   {

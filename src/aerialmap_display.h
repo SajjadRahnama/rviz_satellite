@@ -127,8 +127,11 @@ Q_SLOTS:
         FloatProperty *resolution_property_;
         FloatProperty *alpha_property_;
         Property *draw_under_property_;
+        Property *draw_mapscache_;
         EnumProperty * frame_convention_property_;
-
+        StringProperty *lat_property_;
+        StringProperty *lon_property_;
+        
         float alpha_;
         bool draw_under_;
         std::string object_uri_;
