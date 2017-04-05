@@ -34,6 +34,18 @@
 
 #include <rviz_satellite/ReadTakeoffGps.h>
 
+#include <QTimer>
+
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+#include <std_msgs/Float64.h>
+
+using namespace cv;
+
 namespace Ogre {
     class ManualObject;
 }
@@ -75,6 +87,7 @@ Q_SLOTS:
         void updateZoom();
         void updateBlocks();
         void updateFrameConvention();
+        void refresh();
 
         //  slots for TileLoader messages
         void initiatedRequest(QNetworkRequest request);
@@ -131,7 +144,7 @@ Q_SLOTS:
         EnumProperty * frame_convention_property_;
         StringProperty *lat_property_;
         StringProperty *lon_property_;
-        
+
         float alpha_;
         bool draw_under_;
         std::string object_uri_;
@@ -143,6 +156,11 @@ Q_SLOTS:
         bool received_msg_;
         sensor_msgs::NavSatFix current_ref_fix_;
         std::shared_ptr<TileLoader> loader_;
+
+        QTimer *timer;
+        image_transport::ImageTransport it_;
+        image_transport::Subscriber image_sub_;
+        ros::Subscriber compass_sub;
     };
 
 } // namespace rviz

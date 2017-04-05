@@ -33,6 +33,8 @@ endif()
 
 find_package(catkin REQUIRED COMPONENTS
   nav_msgs
+  cv_bridge
+  image_transport
   roscpp
   rviz
   sensor_msgs

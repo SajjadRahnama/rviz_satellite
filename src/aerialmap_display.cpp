@@ -34,12 +34,21 @@
 #include "rviz/properties/vector_property.h"
 #include "rviz/validate_floats.h"
 #include "rviz/display_context.h"
-
+#include <sstream>
 #include "aerialmap_display.h"
 
 #define FRAME_CONVENTION_XYZ_ENU (0)  //  X -> East, Y -> North
 #define FRAME_CONVENTION_XYZ_NED (1)  //  X -> North, Y -> East
 #define FRAME_CONVENTION_XYZ_NWU (2)  //  X -> North, Y -> West
+
+std::string images_path = "/home/sajjadtest/catkin_aurora_rviz_satellite/src/rviz_satellite/mapscache/test/";
+std::stringstream image_name;
+std::string type = ".jpg";
+int x = 0;
+int y = 0;
+int z = 0;
+
+
 bool is_fix = false;
 // Max number of adjacent blocks to support.
 static constexpr int kMaxBlocks = 8;
@@ -48,9 +57,21 @@ static constexpr int kMaxZoom = 22;
 
 sensor_msgs::NavSatFix fix_ref_fix_;
 
+double originOffsetX = 0;
+double originOffsetY = 0;
+
+
+
 // TODO(gareth): If higher zooms are ever supported, change calculations from
 // int to long wherever applicable.
 static_assert((1 << kMaxZoom) < std::numeric_limits<unsigned int>::max(), "");
+
+float CalculateDistance(float p1x, float p1y, float p2x, float p2y)
+{
+  float diffY = p1y - p2y;
+  float diffX = p1x - p2x;
+  return sqrt((diffY * diffY) + (diffX * diffX));
+}
 
 Ogre::TexturePtr textureFromImage(const QImage &image,
   const std::string &name)
@@ -83,13 +104,53 @@ bool sendTakeoffGps(rviz_satellite::ReadTakeoffGps::Request &req,
   return true;
 }
 
+void imageCb(const sensor_msgs::ImageConstPtr& msg)
+{
+
+  cv_bridge::CvImagePtr cv_ptr;
+  try
+  {
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+  //  detect_edges(cv_ptr->image);
+  imshow("1111", cv_ptr->image);
+  if (x > 0)
+  {
+    image_name << images_path << "x" << x << "_y" << y << "_z" << z << type;
+    std::cout << image_name.str() << std::endl;
+    std::string filename = image_name.str();
+    image_name.str("");
+    Mat tmp = cv_ptr->image;
+    imwrite(filename, tmp);
+  }
+  waitKey(3);
+}
+
+void compassCallback(const std_msgs::Float64 &msg)
+{
+  //  ROS_ERROR("ddddddddddddddddddd %f", msg.data);
+  //  ROS_ERROR("xxxxxxxxxxxxxxxxxxxxxxx %f", originOffsetX);
+  //  ROS_ERROR("yyyyyyyyyyyyyyyyyyyyyyy %f", originOffsetY);
+  float i = CalculateDistance(originOffsetX, originOffsetY, 0.0, 0.0);
+  ROS_ERROR("xxxxxxxxxxxxxxxxxxxxxxx %f", i);
+
+}
 namespace rviz
 {
 
 AerialMapDisplay::AerialMapDisplay()
   : Display(), map_id_(0), scene_id_(0), dirty_(false),
-  received_msg_(false)
+  received_msg_(false), it_(update_nh_)
 {
+  timer = new QTimer(this);
+  connect(timer, SIGNAL(timeout()), this, SLOT(refresh()));
+  image_sub_ = it_.subscribe("/raspberry_pi/image_raw", 1, &imageCb);
+  compass_sub = update_nh_.subscribe("/mavros/global_position/compass_hdg", 1000, compassCallback);
   is_fix = false;
   service = update_nh_.advertiseService("read_takeoff_gps", sendTakeoffGps);
   static unsigned int map_ids = 0;
@@ -190,6 +251,7 @@ AerialMapDisplay::~AerialMapDisplay()
 void AerialMapDisplay::onInitialize()
 {
   frame_property_->setFrameManager(context_->getFrameManager());
+  timer->start(5000);
 }
 
 void AerialMapDisplay::onEnable()
@@ -302,6 +364,11 @@ void AerialMapDisplay::updateFrameConvention()
   transformAerialMap();
 }
 
+void AerialMapDisplay::refresh()
+{
+  loadImagery();
+}
+
 void AerialMapDisplay::updateTopic()
 {
   unsubscribe();
@@ -370,6 +437,14 @@ void AerialMapDisplay::navFixCallback(const sensor_msgs::NavSatFixConstPtr &msg)
     loadImagery();
     ROS_INFO("Fixed nav coordinate %f , %f \n", fix_ref_fix_.latitude, fix_ref_fix_.longitude);
   }
+
+  TileLoader tmp_loader(object_uri_, msg->latitude,
+    msg->longitude, zoom_, blocks_, this);
+  originOffsetX = tmp_loader.originOffsetX();
+  originOffsetY = tmp_loader.originOffsetY();
+  x = tmp_loader.centerTileX();
+  y = tmp_loader.centerTileY();
+  z = zoom_;
 }
 
 void AerialMapDisplay::loadImagery()
